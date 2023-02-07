@@ -88,7 +88,14 @@ enum mpam_device_features {
 	mpam_feat_msmon,
 	mpam_feat_msmon_csu,
 	mpam_feat_msmon_csu_capture,
+	/*
+	 * Having mpam_feat_msmon_mbwu set doesn't mean the regular 31 bit MBWU
+	 * counter would be used. The exact counter used is decided based on the
+	 * status of mpam_feat_msmon_mbwu_l/mpam_feat_msmon_mbwu_lwd as well.
+	 */
 	mpam_feat_msmon_mbwu,
+	mpam_feat_msmon_mbwu_l,
+	mpam_feat_msmon_mbwu_lwd,
 	mpam_feat_msmon_mbwu_capture,
 	mpam_feat_msmon_capt,
 	mpam_feat_partid_nrw,
@@ -371,6 +378,8 @@ int mpam_msmon_read(struct mpam_component *comp, struct mon_cfg *ctx,
 
 /* MPAMF_MBWUMON_IDR - MPAM memory bandwidth usage monitor ID register */
 #define MPAMF_MBWUMON_IDR_NUM_MON       GENMASK(15, 0)
+#define MPAMF_MBWUMON_IDR_HAS_LONG	BIT(30)
+#define MPAMF_MBWUMON_IDR_LWD		BIT(29)
 #define MPAMF_MBWUMON_IDR_HAS_CAPTURE   BIT(31)
 
 /* MPAMF_PARTID_NRW_IDR - MPAM PARTID narrowing ID register */

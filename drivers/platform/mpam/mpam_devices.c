@@ -660,6 +660,26 @@ static void mpam_ris_hw_probe(struct mpam_msc_ris *ris)
 			props->num_mbwu_mon = FIELD_GET(MPAMF_MBWUMON_IDR_NUM_MON, mbwumonidr);
 			if (props->num_mbwu_mon)
 				mpam_set_feature(mpam_feat_msmon_mbwu, props);
+
+			/*
+			 * Treat long counter and its extension, lwd as mutually
+			 * exclusive feature bits. Though these are dependent
+			 * fields at the implementation level, there would never
+			 * be a need for mpam_feat_msmon_mbwu_l (long counter)
+			 * and lwd (mpam_feat_msmon_mbwu_lwd) bits to be set
+			 * together.
+			 *
+			 * mpam_feat_msmon_mbwu isn't treated as an exclusive
+			 * bit as this feature bit would be used as the "front
+			 * facing feature bit" for any checks related to mbwu
+			 * monitors.
+			 */
+			if (props->num_mbwu_mon && FIELD_GET(MPAMF_MBWUMON_IDR_HAS_LONG, mbwumonidr)) {
+				if (FIELD_GET(MPAMF_MBWUMON_IDR_LWD, mbwumonidr))
+					mpam_set_feature(mpam_feat_msmon_mbwu_lwd, props);
+				else
+					mpam_set_feature(mpam_feat_msmon_mbwu_l, props);
+			}
 		}
 	}
 
