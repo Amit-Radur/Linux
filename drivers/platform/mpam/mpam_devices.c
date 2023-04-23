@@ -1153,8 +1153,12 @@ static void mpam_reprogram_ris_partid(struct mpam_msc_ris *ris, u16 partid,
 
 		if (mpam_has_feature(mpam_feat_intpri_part, rprops))
 			pri_val |= FIELD_PREP(MPAMCFG_PRI_INTPRI, intpri);
-		if (mpam_has_feature(mpam_feat_dspri_part, rprops))
-			pri_val |= FIELD_PREP(MPAMCFG_PRI_DSPRI, dspri);
+		if (mpam_has_feature(mpam_feat_dspri_part, rprops)) {
+			if (mpam_has_feature(mpam_feat_dspri_part, cfg)) {
+				pri_val |= FIELD_PREP(MPAMCFG_PRI_DSPRI, cfg->dspri & dspri);
+			} else
+				pri_val |= FIELD_PREP(MPAMCFG_PRI_DSPRI, dspri);
+		}
 
 		mpam_write_partsel_reg(msc, PRI, pri_val);
 	}
