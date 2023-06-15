@@ -716,6 +716,8 @@ static int mpam_resctrl_resource_init(struct mpam_resctrl_res *res)
 		r->default_ctrl = BIT_MASK(class->props.cpbm_wd) - 1;
 		r->data_width = (class->props.cpbm_wd + 3) / 4;
 
+		r->dspri_width = class->props.dspri_wd;
+
 		/*
 		 * Which bits are shared with other ...things...
 		 * Unknown devices use partid-0 which uses all the bitmap
@@ -854,7 +856,7 @@ u32 resctrl_arch_get_config(struct rdt_resource *r, struct rdt_domain *d,
 	lockdep_assert_cpus_held();
 
 	if (!mpam_is_enabled())
-		return r->default_ctrl;
+		return r->has_dspri_list ? 0 : r->default_ctrl;
 
 	res = container_of(r, struct mpam_resctrl_res, resctrl_res);
 	dom = container_of(d, struct mpam_resctrl_dom, resctrl_dom);
@@ -866,7 +868,10 @@ u32 resctrl_arch_get_config(struct rdt_resource *r, struct rdt_domain *d,
 	switch (r->rid) {
 	case RDT_RESOURCE_L2:
 	case RDT_RESOURCE_L3:
-		configured_by = mpam_feat_cpor_part;
+		if (!r->has_dspri_list)
+			configured_by = mpam_feat_cpor_part;
+		else
+			configured_by = mpam_feat_dspri_part;
 		break;
 	case RDT_RESOURCE_MBA:
 		if (mba_class_use_mbw_part(cprops)) {
@@ -889,6 +894,8 @@ u32 resctrl_arch_get_config(struct rdt_resource *r, struct rdt_domain *d,
 	case mpam_feat_cpor_part:
 		/* TODO: Scaling is not yet supported */
 		return cfg->cpbm;
+	case mpam_feat_dspri_part:
+		return cfg->dspri;
 	case mpam_feat_mbw_part:
 		/* TODO: Scaling is not yet supported */
 		return mbw_pbm_to_percent(cfg->mbw_pbm, cprops);
@@ -926,8 +933,12 @@ int resctrl_arch_update_one(struct rdt_resource *r, struct rdt_domain *d,
 	case RDT_RESOURCE_L2:
 	case RDT_RESOURCE_L3:
 		/* TODO: Scaling is not yet supported */
-		cfg.cpbm = cfg_val;
+		cfg.cpbm = cfg_val & (BIT_MASK(r->cache.cbm_len)-1);
 		mpam_set_feature(mpam_feat_cpor_part, &cfg);
+		if (r->priority_cap) {
+			cfg.dspri = (cfg_val >> r->cache.cbm_len) & (BIT_MASK(r->dspri_width)-1);
+			mpam_set_feature(mpam_feat_dspri_part, &cfg);
+		}
 		break;
 	case RDT_RESOURCE_MBA:
 		if (mba_class_use_mbw_part(cprops)) {

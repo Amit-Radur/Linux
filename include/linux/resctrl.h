@@ -198,6 +198,7 @@ struct resctrl_membw {
  * @alloc_capable:	Is allocation available on this machine
  * @mon_capable:	Is monitor feature available on this machine
  * @priority_capable:   Is priority partitioning feature available on this machine
+ * @dspri_list:		has dspri show support from resctrl
  * @num_rmid:		Number of RMIDs available
  * @cache_level:	Which cache level defines scope of this resource
  * @cache:		Cache allocation related data
@@ -216,6 +217,7 @@ struct rdt_resource {
 	bool			alloc_capable;
 	bool			mon_capable;
 	bool                    priority_cap;
+	bool                    has_dspri_list;
 	int			num_rmid;
 	int			cache_level;
 	struct resctrl_cache	cache;
@@ -223,6 +225,8 @@ struct rdt_resource {
 	struct list_head	domains;
 	char			*name;
 	int			data_width;
+	u16                     dspri_width;
+	u32                     dspri_save_state;
 	u32			default_ctrl;
 	const char		*format_str;
 	struct list_head	evt_list;

@@ -290,6 +290,7 @@ static int rdtgroup_parse_resource(char *resname, char *tok,
 ssize_t rdtgroup_schemata_write(struct kernfs_open_file *of,
 				char *buf, size_t nbytes, loff_t off)
 {
+	struct resctrl_staged_config *cfg;
 	struct resctrl_schema *s;
 	struct rdtgroup *rdtgrp;
 	struct rdt_domain *dom;
@@ -319,6 +320,20 @@ ssize_t rdtgroup_schemata_write(struct kernfs_open_file *of,
 		goto out;
 	}
 
+	/* save dpsri value */
+	list_for_each_entry(s, &resctrl_schema_all, list) {
+		r = s->res;
+		if (r->rid == RDT_RESOURCE_MBA)
+			continue;
+
+		if (r->priority_cap) {
+			list_for_each_entry(dom, &r->domains, list) {
+				cfg = &dom->staged_config[0];
+				r->dspri_save_state = (cfg->new_ctrl >> r->cache.cbm_len) & (BIT_MASK(r->dspri_width)-1);
+			}
+		}
+	}
+
 	list_for_each_entry(s, &resctrl_schema_all, list) {
 		list_for_each_entry(dom, &s->res->domains, list)
 			memset(dom->staged_config, 0, sizeof(dom->staged_config));
@@ -339,6 +354,20 @@ ssize_t rdtgroup_schemata_write(struct kernfs_open_file *of,
 		ret = rdtgroup_parse_resource(resname, tok, rdtgrp);
 		if (ret)
 			goto out;
+	}
+
+	/* Restore dspri value */
+	list_for_each_entry(s, &resctrl_schema_all, list) {
+		r = s->res;
+		if (r->rid == RDT_RESOURCE_MBA)
+			continue;
+
+		if (r->priority_cap) {
+			list_for_each_entry(dom, &r->domains, list) {
+				cfg = &dom->staged_config[0];
+				cfg->new_ctrl |= r->dspri_save_state << r->cache.cbm_len;
+			}
+		}
 	}
 
 	list_for_each_entry(s, &resctrl_schema_all, list) {

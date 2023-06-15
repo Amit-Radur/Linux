@@ -462,6 +462,106 @@ static int cpus_ctrl_write(struct rdtgroup *rdtgrp, cpumask_var_t newmask,
 	return 0;
 }
 
+static int rdtgroup_dspri_show(struct kernfs_open_file *of,
+                             struct seq_file *seq, void *v)
+{
+	struct resctrl_schema *s;
+	struct rdtgroup *rdtgrp;
+	struct rdt_resource *r;
+	struct rdt_domain *d;
+	u32 ctrl;
+	int ret = 0;
+
+	rdtgrp = rdtgroup_kn_lock_live(of->kn);
+	if (!rdtgrp) {
+		rdtgroup_kn_unlock(of->kn);
+		ret = -ENOENT;
+		goto unlock;
+	}
+
+	list_for_each_entry(s, &resctrl_schema_all, list) {
+		r = s->res;
+		if (r->rid == RDT_RESOURCE_MBA)
+			continue;
+
+		r->has_dspri_list = true;
+
+		list_for_each_entry(d, &r->domains, list)
+			ctrl = resctrl_arch_get_config(r, d, rdtgrp->closid, 0);
+	}
+
+	seq_printf(seq, "%x\n", ctrl);
+
+unlock:
+	r->has_dspri_list = false;
+	rdtgroup_kn_unlock(of->kn);
+
+	return ret;
+}
+
+static ssize_t rdtgroup_dspri_write(struct kernfs_open_file *of,
+                                   char *buf, size_t nbytes, loff_t off)
+{
+	struct resctrl_schema *s;
+	struct rdtgroup *rdtgrp;
+	struct resctrl_staged_config *cfg;
+	struct rdt_domain *d;
+	struct rdt_resource *r;
+	unsigned int dspri_val, dspri_mask;
+	int ret;
+
+	if (!buf)
+		return -EINVAL;
+
+	rdtgrp = rdtgroup_kn_lock_live(of->kn);
+	if (!rdtgrp) {
+		ret = -ENOENT;
+		goto unlock;
+	}
+
+	if (rdtgrp->mode == RDT_MODE_PSEUDO_LOCKED ||
+		rdtgrp->mode == RDT_MODE_PSEUDO_LOCKSETUP) {
+		ret = -EINVAL;
+		rdt_last_cmd_puts("Pseudo-locking in progress\n");
+		goto unlock;
+	}
+
+	ret = kstrtouint(buf, 0, &dspri_val);
+	if (ret)
+		goto unlock;
+
+	list_for_each_entry(s, &resctrl_schema_all, list) {
+		r = s->res;
+		if (r->rid == RDT_RESOURCE_MBA)
+			continue;
+
+		if (dspri_val > GENMASK(r->dspri_width-1, 0)) {
+			ret = -EINVAL;
+			rdt_last_cmd_puts("Bad priority value\n");
+			goto unlock;
+		}
+
+		dspri_mask = GENMASK(r->dspri_width-1, 0);
+
+		list_for_each_entry(d, &r->domains, list) {
+			cfg = &d->staged_config[0];
+			cfg->new_ctrl &= ~(dspri_mask << r->cache.cbm_len);
+			cfg->new_ctrl |=  dspri_val << r->cache.cbm_len;
+			cfg->have_new_ctrl = true;
+
+			ret = resctrl_arch_update_one(r, d, rdtgrp->closid, 0,
+							cfg->new_ctrl);
+			if (ret)
+				goto unlock;
+		}
+	}
+
+unlock:
+	rdtgroup_kn_unlock(of->kn);
+
+	return ret ?: nbytes;
+}
+
 static ssize_t rdtgroup_cpus_write(struct kernfs_open_file *of,
 				   char *buf, size_t nbytes, loff_t off)
 {
@@ -1802,6 +1902,14 @@ static struct rftype res_common_files[] = {
 		.kf_ops		= &rdtgroup_kf_single_ops,
 		.seq_show	= rdtgroup_id_show,
 		.fflags		= RFTYPE_BASE,
+	},
+	{
+		.name           = "dspri",
+		.mode           = 0644,
+		.kf_ops         = &rdtgroup_kf_single_ops,
+		.write          = rdtgroup_dspri_write,
+		.seq_show       = rdtgroup_dspri_show,
+		.fflags         = RFTYPE_BASE,
 	},
 };
 
