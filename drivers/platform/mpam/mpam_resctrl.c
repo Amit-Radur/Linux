@@ -457,6 +457,17 @@ static bool cache_has_usable_csu(struct mpam_class *class)
 	return (mpam_partid_max > 1) || (mpam_pmg_max != 0);
 }
 
+static bool __attribute__ ((unused))
+cache_has_usable_priority_part(struct mpam_class *class)
+{
+	struct mpam_props *cprops = &class->props;
+
+	if (!mpam_has_feature(mpam_feat_dspri_part, cprops))
+		return false;
+
+	return (class->props.dspri_wd <= RESCTRL_MAX_DSPRI);
+}
+
 bool resctrl_arch_is_llc_occupancy_enabled(void)
 {
 	return cache_has_usable_csu(mpam_resctrl_exports[RDT_RESOURCE_L3].class);
@@ -717,6 +728,9 @@ static int mpam_resctrl_resource_init(struct mpam_resctrl_res *res)
 			r->alloc_capable = true;
 			exposed_alloc_capable = true;
 		}
+
+		if (mpam_has_feature(mpam_feat_dspri_part, &class->props))
+			r->priority_cap = true;
 
 		/*
 		 * MBWU counters may be 'local' or 'total' depending on where
