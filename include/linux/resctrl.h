@@ -199,12 +199,14 @@ struct resctrl_membw {
  * @mon_capable:	Is monitor feature available on this machine
  * @priority_capable:   Is priority partitioning feature available on this machine
  * @dspri_store:
+ * @dspri_show:		flag to indicate downstream priority read
  * @num_rmid:		Number of RMIDs available
  * @cache_level:	Which cache level defines scope of this resource
  * @cache:		Cache allocation related data
  * @membw:		If the component has bandwidth controls, their properties.
  * @domains:		RCU list of all domains for this resource
  * @name:		Name to use in "schemata" file.
+ * @dspri_data_width    Character width of dspri value when displaying
  * @data_width:		Character width of data when displaying
  * @default_ctrl:	Specifies default cache cbm or memory B/W percent.
  * @dspri_default_ctrl: Specifies default downstream priority value.
@@ -219,6 +221,7 @@ struct rdt_resource {
 	bool			mon_capable;
 	bool                    priority_cap;
 	bool			dspri_store;
+	bool                    dspri_show;
 	int			num_rmid;
 	int			cache_level;
 	struct resctrl_cache	cache;
@@ -226,6 +229,7 @@ struct rdt_resource {
 	struct list_head	domains;
 	char			*name;
 	int			data_width;
+	int			dspri_data_width;
 	u32			default_ctrl;
 	u32			dspri_default_ctrl;
 	const char		*format_str;
