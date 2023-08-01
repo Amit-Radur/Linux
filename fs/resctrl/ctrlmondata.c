@@ -379,7 +379,7 @@ static void show_doms(struct seq_file *s, struct resctrl_schema *schema, int clo
 	struct rdt_resource *r = schema->res;
 	struct rdt_domain *dom;
 	bool sep = false;
-	u32 ctrl_val;
+	u32 ctrl_val, dspri_ctrl_val;
 
 	/* Walking r->domains, ensure it can't race with cpuhp */
 	lockdep_assert_cpus_held();
@@ -395,9 +395,18 @@ static void show_doms(struct seq_file *s, struct resctrl_schema *schema, int clo
 			ctrl_val = resctrl_arch_get_config(r, dom, closid,
 							   schema->conf_type);
 
-		seq_printf(s, r->format_str, dom->id, max_data_width,
-			   ctrl_val);
+		if (r->priority_cap) {
+			r->dspri_show = true;
+			dspri_ctrl_val = resctrl_arch_get_config(r, dom, closid,
+								 CDP_NONE);
+			seq_printf(s, r->format_str, dom->id, max_data_width, ctrl_val,
+					r->dspri_data_width, dspri_ctrl_val);
+		} else
+			seq_printf(s, r->format_str, dom->id, max_data_width,
+				   ctrl_val);
+
 		sep = true;
+		r->dspri_show = false;
 	}
 	seq_puts(s, "\n");
 }

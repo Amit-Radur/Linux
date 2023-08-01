@@ -735,7 +735,11 @@ static int mpam_resctrl_resource_init(struct mpam_resctrl_res *res)
 
 		if (has_ppart) {
 			r->priority_cap = true;
+			if (class->props.dspri_wd > 0x10)
+				class->props.dspri_wd = 0x10;
+
 			r->dspri_default_ctrl = BIT_MASK(class->props.dspri_wd) - 1;
+			r->dspri_data_width = (class->props.dspri_wd + 3) / 4;
 		}
 
 		/*
