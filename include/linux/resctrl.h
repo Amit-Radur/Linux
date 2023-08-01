@@ -38,6 +38,8 @@ int proc_resctrl_show(struct seq_file *m,
  */
 #define RESCTRL_MAX_CBM			32
 
+#define RESCTRL_MAX_DSPRI               63
+
 /* The format for packing fields into the u64 'id' exposed to user-space */
 #define RESCTRL_ID_CLOSID	GENMASK_ULL(31, 0)
 #define RESCTRL_ID_RMID		GENMASK_ULL(63, 32)
@@ -195,6 +197,7 @@ struct resctrl_membw {
  * @rid:		The index of the resource
  * @alloc_capable:	Is allocation available on this machine
  * @mon_capable:	Is monitor feature available on this machine
+ * @priority_capable:   Is priority partitioning feature available on this machine
  * @num_rmid:		Number of RMIDs available
  * @cache_level:	Which cache level defines scope of this resource
  * @cache:		Cache allocation related data
@@ -212,6 +215,7 @@ struct rdt_resource {
 	int			rid;
 	bool			alloc_capable;
 	bool			mon_capable;
+	bool                    priority_cap;
 	int			num_rmid;
 	int			cache_level;
 	struct resctrl_cache	cache;
