@@ -435,6 +435,16 @@ static bool cache_has_usable_cpor(struct mpam_class *class)
 	return (class->props.cpbm_wd <= RESCTRL_MAX_CBM);
 }
 
+static bool cache_has_usable_priority_part(struct mpam_class *class)
+{
+	struct mpam_props *cprops = &class->props;
+
+	if (!mpam_has_feature(mpam_feat_dspri_part, cprops))
+		return false;
+
+	return (class->props.dspri_wd <= RESCTRL_MAX_DSPRI);
+}
+
 static bool cache_has_usable_csu(struct mpam_class *class)
 {
 	struct mpam_props *cprops;
@@ -691,6 +701,7 @@ static int mpam_resctrl_resource_init(struct mpam_resctrl_res *res)
 	    res->resctrl_res.rid == RDT_RESOURCE_L3) {
 		bool has_csu = cache_has_usable_csu(class);
 		bool has_mbwu = class_has_usable_mbwu(class);
+		bool has_ppart = cache_has_usable_priority_part(class);
 
 		/* TODO: Scaling is not yet supported */
 		r->cache.cbm_len = class->props.cpbm_wd;
@@ -717,6 +728,9 @@ static int mpam_resctrl_resource_init(struct mpam_resctrl_res *res)
 			r->alloc_capable = true;
 			exposed_alloc_capable = true;
 		}
+
+		if (has_ppart)
+			r->priority_cap = true;
 
 		/*
 		 * MBWU counters may be 'local' or 'total' depending on where
