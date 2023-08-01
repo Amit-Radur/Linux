@@ -711,7 +711,11 @@ static int mpam_resctrl_resource_init(struct mpam_resctrl_res *res)
 		r->cache.min_cbm_bits = 1;
 
 		/* TODO: kill these properties off as they are derivatives */
-		r->format_str = "%d=%0*x";
+		if (mpam_has_feature(mpam_feat_dspri_part, &class->props))
+			r->format_str = "%d=%0*x,%0*x";
+		else
+			r->format_str = "%d=%0*x";
+
 		r->fflags = RFTYPE_RES_CACHE;
 		r->default_ctrl = BIT_MASK(class->props.cpbm_wd) - 1;
 		r->data_width = (class->props.cpbm_wd + 3) / 4;
