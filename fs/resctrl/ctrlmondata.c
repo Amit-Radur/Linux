@@ -30,6 +30,74 @@ typedef int (ctrlval_parser_t)(struct rdt_parse_data *data,
 			       struct resctrl_schema *s,
 			       struct rdt_domain *d);
 
+static bool dspri_validate(char *buf, unsigned long *data, struct rdt_resource *r)
+{
+
+	char *dup_buf, *dspri_token;
+	unsigned long dspri_val;
+	bool success = true;
+	int ret;
+
+	dup_buf = kstrdup(buf, GFP_KERNEL);
+	if (!dup_buf) {
+		rdt_last_cmd_printf("Failed to allocate buffer %s\n",
+					__func__);
+		success = false;
+		goto out;
+	}
+
+	strsep(&dup_buf, ",");
+	if (!dup_buf) {
+		rdt_last_cmd_printf("Unable to find priority value token %s\n",
+					__func__);
+		success = false;
+		goto out;
+	}
+
+	dspri_token = strsep(&dup_buf, ",");
+	ret = kstrtoul(dspri_token, 16, &dspri_val);
+	if (ret) {
+		rdt_last_cmd_printf("Non-hex character in the mask %s\n", buf);
+		success = false;
+		goto out;
+	}
+
+	if (dspri_val > r->dspri_default_ctrl) {
+		rdt_last_cmd_printf("dspri value %ld out of range [%d-%d]\n", dspri_val,
+					0, r->dspri_default_ctrl);
+		success = false;
+		goto out;
+	}
+
+	*data = dspri_val;
+
+out:
+	kfree(dup_buf);
+	return success;
+}
+
+static int parse_dspri(struct rdt_parse_data *data, struct resctrl_schema *s,
+			struct rdt_domain *d)
+{
+	struct resctrl_staged_config *cfg;
+	struct rdt_resource *r = s->res;
+	unsigned long pri_val;
+
+	cfg = &d->staged_config[s->conf_type];
+	if (cfg->have_new_ctrl) {
+		rdt_last_cmd_printf("Duplicate domain %d\n", d->id);
+		return -EINVAL;
+	}
+
+	if (!dspri_validate(data->buf, &pri_val, r))
+		return -EINVAL;
+
+	cfg->new_ctrl = pri_val;
+	cfg->have_new_ctrl = true;
+
+	return 0;
+}
+
 /*
  * Check whether MBA bandwidth percentage value is correct. The value is
  * checked against the minimum and max bandwidth values specified by the
@@ -293,6 +361,8 @@ static int rdtgroup_parse_resource(char *resname, char *tok,
 ssize_t rdtgroup_schemata_write(struct kernfs_open_file *of,
 				char *buf, size_t nbytes, loff_t off)
 {
+	char *dup_buf = kstrdup(buf, GFP_KERNEL);
+	struct rdt_parse_data data;
 	struct resctrl_schema *s;
 	struct rdtgroup *rdtgrp;
 	struct rdt_domain *dom;
@@ -354,10 +424,32 @@ ssize_t rdtgroup_schemata_write(struct kernfs_open_file *of,
 		if (is_mba_sc(r))
 			continue;
 
+		if (r->priority_cap)
+			r->dspri_store = false;
+
 		if (!strcmp(resname, s->name)) {
 			ret = resctrl_arch_update_domains(r, rdtgrp->closid);
 			if (ret)
 				goto out;
+
+			if (r->priority_cap) {
+				r->dspri_store = true;
+				list_for_each_entry(dom, &r->domains, list) {
+					ctrlval_parser_t *parse_ctrlval = &parse_dspri;
+					char *dom_data = NULL;
+
+					dom_data = strsep(&dup_buf, ";");
+					dom_data = strim(dom_data);
+					data.buf = dom_data;
+					data.rdtgrp = rdtgrp;
+					if (parse_ctrlval(&data, s, dom))
+						return -EINVAL;
+				}
+
+				ret = resctrl_arch_update_domains(r, rdtgrp->closid);
+				if (ret)
+					goto out;
+			}
 		}
 	}
 
