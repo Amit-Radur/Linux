@@ -198,6 +198,7 @@ struct resctrl_membw {
  * @alloc_capable:	Is allocation available on this machine
  * @mon_capable:	Is monitor feature available on this machine
  * @priority_capable:   Is priority partitioning feature available on this machine
+ * @dspri_store:
  * @num_rmid:		Number of RMIDs available
  * @cache_level:	Which cache level defines scope of this resource
  * @cache:		Cache allocation related data
@@ -206,6 +207,7 @@ struct resctrl_membw {
  * @name:		Name to use in "schemata" file.
  * @data_width:		Character width of data when displaying
  * @default_ctrl:	Specifies default cache cbm or memory B/W percent.
+ * @dspri_default_ctrl: Specifies default downstream priority value.
  * @format_str:		Per resource format string to show domain value
  * @evt_list:		List of monitoring events
  * @fflags:		flags to choose base and info files
@@ -216,6 +218,7 @@ struct rdt_resource {
 	bool			alloc_capable;
 	bool			mon_capable;
 	bool                    priority_cap;
+	bool			dspri_store;
 	int			num_rmid;
 	int			cache_level;
 	struct resctrl_cache	cache;
@@ -224,6 +227,7 @@ struct rdt_resource {
 	char			*name;
 	int			data_width;
 	u32			default_ctrl;
+	u32			dspri_default_ctrl;
 	const char		*format_str;
 	struct list_head	evt_list;
 	unsigned long		fflags;
