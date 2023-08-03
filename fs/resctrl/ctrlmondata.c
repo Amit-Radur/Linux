@@ -108,6 +108,9 @@ static bool cbm_validate(char *buf, u32 *data, struct rdt_resource *r)
 	unsigned int cbm_len = r->cache.cbm_len;
 	int ret;
 
+	if (r->priority_cap)
+		buf = strsep(&buf, ",");
+
 	ret = kstrtoul(buf, 16, &val);
 	if (ret) {
 		rdt_last_cmd_printf("Non-hex character in the mask %s\n", buf);
