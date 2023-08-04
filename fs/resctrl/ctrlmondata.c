@@ -351,9 +351,11 @@ ssize_t rdtgroup_schemata_write(struct kernfs_open_file *of,
 		if (is_mba_sc(r))
 			continue;
 
-		ret = resctrl_arch_update_domains(r, rdtgrp->closid);
-		if (ret)
-			goto out;
+		if (!strcmp(resname, s->name)) {
+			ret = resctrl_arch_update_domains(r, rdtgrp->closid);
+			if (ret)
+				goto out;
+		}
 	}
 
 	if (rdtgrp->mode == RDT_MODE_PSEUDO_LOCKSETUP) {
