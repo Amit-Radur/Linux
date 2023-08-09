@@ -1099,8 +1099,8 @@ static void mpam_reprogram_ris_partid(struct mpam_msc_ris *ris, u16 partid,
 	struct mpam_msc *msc = ris->msc;
 	u16 bwa_fract = MPAMCFG_MBW_MAX_MAX;
 	struct mpam_props *rprops = &ris->props;
-	u16 dspri = GENMASK(rprops->dspri_wd, 0);
-	u16 intpri = GENMASK(rprops->intpri_wd, 0);
+	u16 dspri = GENMASK((rprops->dspri_wd - 1), 0);
+	u16 intpri = GENMASK((rprops->intpri_wd - 1), 0);
 
 	lockdep_assert_held(&msc->lock);
 
