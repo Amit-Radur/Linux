@@ -1789,10 +1789,11 @@ __resource_props_mismatch(struct mpam_msc_ris *ris, struct mpam_class *class)
 	lockdep_assert_held(&mpam_list_lock); /* we modify class */
 
 	/* Clear missing features */
-	cprops->features &= rprops->features;
+	if (class->props.features == ris->props.features)
+		cprops->features &= rprops->features;
 
 	/* Clear incompatible features */
-	if (cprops->cpbm_wd != rprops->cpbm_wd)
+	if (cprops->cpbm_wd != rprops->cpbm_wd && rprops->cpbm_wd)
 		mpam_clear_feature(mpam_feat_cpor_part, &cprops->features);
 	if (cprops->mbw_pbm_bits != rprops->mbw_pbm_bits)
 		mpam_clear_feature(mpam_feat_mbw_part, &cprops->features);
@@ -1802,14 +1803,14 @@ __resource_props_mismatch(struct mpam_msc_ris *ris, struct mpam_class *class)
 		cprops->bwa_wd = min(cprops->bwa_wd, rprops->bwa_wd);
 
 	/* For num properties, take the minimum */
-	if (cprops->num_csu_mon != rprops->num_csu_mon)
+	if (cprops->num_csu_mon != rprops->num_csu_mon && rprops->num_csu_mon)
 		cprops->num_csu_mon = min(cprops->num_csu_mon, rprops->num_csu_mon);
 	if (cprops->num_mbwu_mon != rprops->num_mbwu_mon)
 		cprops->num_mbwu_mon = min(cprops->num_mbwu_mon, rprops->num_mbwu_mon);
 
 	if (cprops->intpri_wd != rprops->intpri_wd)
 		cprops->intpri_wd = min(cprops->intpri_wd, rprops->intpri_wd);
-	if (cprops->dspri_wd != rprops->dspri_wd)
+	if (cprops->dspri_wd != rprops->dspri_wd && rprops->dspri_wd)
 		cprops->dspri_wd = min(cprops->dspri_wd, rprops->dspri_wd);
 
 	/* {int,ds}pri may not have differing 0-low behaviour */
@@ -1845,6 +1846,19 @@ static void mpam_enable_init_class_features(struct mpam_class *class)
 	class->props = ris->props;
 }
 
+/* Club different resource properties under a class that resctrl uses,
+ * for instance, L3 cache that supports both CPOR, and DSPRI need to have
+ * knowledge of both cpbm_wd and dspri_wd.
+ */
+static void mpam_enable_club_class_features(struct mpam_class *class,
+					    struct mpam_msc_ris *ris)
+{
+	class->props.features |= ris->props.features;
+	class->props.cpbm_wd |= ris->props.cpbm_wd;
+	class->props.dspri_wd |= ris->props.dspri_wd;
+	class->props.num_csu_mon |= ris->props.num_csu_mon;
+}
+
 /* Merge all the common resource features into class. */
 static void mpam_enable_merge_features(void)
 {
@@ -1860,6 +1874,14 @@ static void mpam_enable_merge_features(void)
 		list_for_each_entry(comp, &class->components, class_list) {
 			list_for_each_entry(ris, &comp->ris, comp_list) {
 				__resource_props_mismatch(ris, class);
+				/*
+				 * There can be multiple resources under a class which is
+				 * mapped to different controls, For instance L3 cache
+				 * can have both CPOR and DSPRI implemented with different
+				 * RIS.
+				 */
+				if (class->props.features != ris->props.features)
+					mpam_enable_club_class_features(class, ris);
 
 				class->nrdy_usec = max(class->nrdy_usec,
 						     ris->msc->nrdy_usec);
