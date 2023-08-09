@@ -1829,6 +1829,19 @@ static void mpam_enable_init_class_features(struct mpam_class *class)
 	class->props = ris->props;
 }
 
+/* Club different resource properties under a class that resctrl uses,
+ * for instance, L3 cache that supports both CPOR, and DSPRI need to have
+ * knowledge of both cpbm_wd and dspri_wd.
+ */
+static void mpam_enable_club_class_features(struct mpam_class *class,
+					    struct mpam_msc_ris *ris)
+{
+	class->props.features |= ris->props.features;
+	class->props.cpbm_wd |= ris->props.cpbm_wd;
+	class->props.dspri_wd |= ris->props.dspri_wd;
+	class->props.num_csu_mon |= ris->props.num_csu_mon;
+}
+
 /* Merge all the common resource features into class. */
 static void mpam_enable_merge_features(void)
 {
@@ -1843,7 +1856,16 @@ static void mpam_enable_merge_features(void)
 
 		list_for_each_entry(comp, &class->components, class_list) {
 			list_for_each_entry(ris, &comp->ris, comp_list) {
-				__resource_props_mismatch(ris, class);
+				/* There can be multiple resources under a class which is
+				 * mapped to differnt controls, for instance L3 cache
+				 * can have both CPOR and DSPRI implemented, and following
+				 * would avoid property mismatch later on when different
+				 * resources are present.
+				 */
+				if (class->props.features != ris->props.features)
+					mpam_enable_club_class_features(class, ris);
+				else
+					__resource_props_mismatch(ris, class);
 
 				class->nrdy_usec = max(class->nrdy_usec,
 						     ris->msc->nrdy_usec);
