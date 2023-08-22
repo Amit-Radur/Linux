@@ -33,8 +33,8 @@ typedef int (ctrlval_parser_t)(struct rdt_parse_data *data,
 static bool dspri_validate(char *buf, unsigned long *data, struct rdt_resource *r)
 {
 
-	char *dup_buf, *dspri_token;
-	unsigned long dspri_val;
+	char *dup_buf, *dspri_token, *token_end;
+	unsigned long dspri_val, token_len = 0;
 	bool success = true;
 	int ret;
 
@@ -46,15 +46,40 @@ static bool dspri_validate(char *buf, unsigned long *data, struct rdt_resource *
 		goto out;
 	}
 
-	strsep(&dup_buf, ",");
-	if (!dup_buf) {
+
+	while ((dspri_token = strsep(&dup_buf, ","))) {
+		if (strstr(dspri_token, "PPART=") == dspri_token)
+			break;
+	}
+
+	pr_info("dspri_token is %s\n", dspri_token);
+	if (dspri_token == NULL) {
+		success = false;
+		goto out;
+	}
+
+#if 0
+	dspri_token = strstr(dup_buf, "PPART=");
+	if (dspri_token) {
+		token_len += strlen(dspri_token)-1;
+		pr_info("token lenght is %x\n", token_len);
+		memparse(dspri_token + token_len, &token_end);
+		pr_info("token_end is %c\n", token_end);
+		kstrtoul(token_end, 16, &dspri_val);
+		pr_info("dspri_val is %x\n", dspri_val);
+	}				
+#endif	
+#if 1
+	strsep(&dspri_token, "=");
+	if (!dspri_token) {
 		rdt_last_cmd_printf("Unable to find priority value token %s\n",
 					__func__);
 		success = false;
 		goto out;
 	}
 
-	dspri_token = strsep(&dup_buf, ",");
+	dspri_token = strsep(&dspri_token, ",");
+#endif	
 	ret = kstrtoul(dspri_token, 16, &dspri_val);
 	if (ret) {
 		rdt_last_cmd_printf("Non-hex character in the mask %s\n", buf);

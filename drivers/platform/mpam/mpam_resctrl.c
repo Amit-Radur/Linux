@@ -695,6 +695,8 @@ static int mpam_resctrl_resource_init(struct mpam_resctrl_res *res)
 {
 	struct mpam_class *class = res->class;
 	struct rdt_resource *r = &res->resctrl_res;
+	char tmp_fmt_str[250];
+	int str_len = 0;
 
 	/* Is this one of the two well-known caches? */
 	if (res->resctrl_res.rid == RDT_RESOURCE_L2 ||
@@ -709,13 +711,29 @@ static int mpam_resctrl_resource_init(struct mpam_resctrl_res *res)
 
 		/* mpam_devices will reject empty bitmaps */
 		r->cache.min_cbm_bits = 1;
-
+#if 0
 		/* TODO: kill these properties off as they are derivatives */
 		if (mpam_has_feature(mpam_feat_dspri_part, &class->props))
-			r->format_str = "%d=%0*x,%0*x";
+			r->format_str = "%d=%0*x,PPART=%0*x";
 		else
 			r->format_str = "%d=%0*x";
+#endif
+		if (mpam_has_feature(mpam_feat_cpor_part, &class->props)) {
+			char *fmt = "%d=%0*x";
 
+			str_len += snprintf(tmp_fmt_str, strlen(fmt) + 1, "%s", fmt);
+		}
+
+		if (mpam_has_feature(mpam_feat_dspri_part, &class->props)) {
+			char *fmt = "PPART=%0*x";
+			
+			if (str_len > 0)
+				str_len += snprintf(tmp_fmt_str + str_len, strlen(fmt) + str_len, "%s", ",");
+
+			str_len += snprintf(tmp_fmt_str + str_len, strlen(fmt) + str_len, "%s", fmt);
+		}			
+
+		r->format_str = kstrdup(tmp_fmt_str, GFP_KERNEL);
 		r->fflags = RFTYPE_RES_CACHE;
 		r->default_ctrl = BIT_MASK(class->props.cpbm_wd) - 1;
 		r->data_width = (class->props.cpbm_wd + 3) / 4;
