@@ -207,6 +207,7 @@ struct resctrl_membw {
  * @data_width:		Character width of data when displaying
  * @dspri_data_width	Character width of dspri value when displaying
  * @default_ctrl:	Specifies default cache cbm or memory B/W percent.
+ * @default_dspri_ctrl: Specifies default downstream priority value.
  * @format_str:		Per resource format string to show domain value
  * @evt_list:		List of monitoring events
  * @fflags:		flags to choose base and info files
@@ -226,6 +227,7 @@ struct rdt_resource {
 	int			data_width;
 	int                     dspri_data_width;
 	u32			default_ctrl;
+	u32                     default_dspri_ctrl;
 	const char		*format_str;
 	struct list_head	evt_list;
 	unsigned long		fflags;

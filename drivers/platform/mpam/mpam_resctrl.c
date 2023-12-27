@@ -735,6 +735,7 @@ static int mpam_resctrl_resource_init(struct mpam_resctrl_res *res)
 				class->props.dspri_wd = 0x10;
 
 			r->dspri_data_width = (class->props.dspri_wd + 3) / 4;
+			r->default_dspri_ctrl = BIT_MASK(class->props.dspri_wd) - 1;
 		}
 
 		/*

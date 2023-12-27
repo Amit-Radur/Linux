@@ -3071,6 +3071,21 @@ static int rdtgroup_init_cat(struct resctrl_schema *s, u32 closid)
 	return 0;
 }
 
+/* Initialize with default downstream priority values. */
+static int rdtgroup_init_dspri(struct rdt_resource *r, u32 closid)
+{
+	struct resctrl_staged_config *cfg;
+	struct rdt_domain *d;
+
+	list_for_each_entry(d, &r->domains, list) {
+		cfg = &d->staged_config[CDP_NONE];
+		cfg->new_ctrl = r->default_dspri_ctrl;
+		cfg->have_new_ctrl = true;
+	}
+
+	return 0;
+}
+
 /* Initialize MBA resource with default values. */
 static void rdtgroup_init_mba(struct rdt_resource *r, u32 closid)
 {
@@ -3107,6 +3122,12 @@ static int rdtgroup_init_alloc(struct rdtgroup *rdtgrp)
 			if (ret < 0)
 				return ret;
 		}
+
+		if (r->priority_cap && s->ctrl_type == SCHEMA_DSPRI) {
+                        ret = rdtgroup_init_dspri(r, rdtgrp->closid);
+                        if (ret < 0)
+                                return ret;
+                }
 
 		ret = resctrl_arch_update_domains(r, rdtgrp->closid);
 		if (ret < 0) {
