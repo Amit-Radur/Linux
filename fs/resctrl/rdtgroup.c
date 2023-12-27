@@ -2256,7 +2256,9 @@ static int rdt_enable_ctx(struct rdt_fs_context *ctx)
 	return ret;
 }
 
-static int schemata_list_add(struct rdt_resource *r, enum resctrl_conf_type type)
+static int schemata_list_add(struct rdt_resource *r,
+				enum resctrl_conf_type type,
+				enum resctrl_ctrl_type ctrl_type)
 {
 	struct resctrl_schema *s;
 	const char *suffix = "";
@@ -2284,10 +2286,12 @@ static int schemata_list_add(struct rdt_resource *r, enum resctrl_conf_type type
 		break;
 	}
 
-	ret = snprintf(s->name, sizeof(s->name), "%s%s", r->name, suffix);
-	if (ret >= sizeof(s->name)) {
-		kfree(s);
-		return -EINVAL;
+	if (ctrl_type == SCHEMA_BASIC) {
+		ret = snprintf(s->name, sizeof(s->name), "%s%s", r->name, suffix);
+		if (ret >= sizeof(s->name)) {
+			kfree(s);
+			return -EINVAL;
+		}
 	}
 
 	cl = strlen(s->name);
@@ -2300,14 +2304,15 @@ static int schemata_list_add(struct rdt_resource *r, enum resctrl_conf_type type
 	if (r->cdp_capable && !resctrl_arch_get_cdp_enabled(r->rid))
 		cl += 4;
 
-	if (cl > max_name_width)
+	if (cl > max_name_width && ctrl_type == SCHEMA_BASIC)
 		max_name_width = cl;
 
 	/*
 	 * Choose a width for the resource data based on the resource that has
 	 * widest cbm/data_width.
 	 */
-	max_data_width = max(max_data_width, r->data_width);
+	if (ctrl_type == SCHEMA_BASIC)
+		max_data_width = max(max_data_width, r->data_width);
 
 	INIT_LIST_HEAD(&s->list);
 	list_add(&s->list, &resctrl_schema_all);
@@ -2328,17 +2333,18 @@ static int schemata_list_create(void)
 			continue;
 
 		if (resctrl_arch_get_cdp_enabled(r->rid)) {
-			ret = schemata_list_add(r, CDP_CODE);
+			ret = schemata_list_add(r, CDP_CODE, SCHEMA_BASIC);
 			if (ret)
 				break;
 
-			ret = schemata_list_add(r, CDP_DATA);
+			ret = schemata_list_add(r, CDP_DATA, SCHEMA_BASIC);
 		} else {
-			ret = schemata_list_add(r, CDP_NONE);
+			ret = schemata_list_add(r, CDP_NONE, SCHEMA_BASIC);
 		}
 
 		if (ret)
 			break;
+
 	}
 
 	return ret;

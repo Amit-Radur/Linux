@@ -249,6 +249,7 @@ struct resctrl_schema {
 	struct list_head		list;
 	char				name[8];
 	enum resctrl_conf_type		conf_type;
+	enum resctrl_ctrl_type          ctrl_type;
 	struct rdt_resource		*res;
 	u32				num_closid;
 };

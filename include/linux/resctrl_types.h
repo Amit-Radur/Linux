@@ -57,6 +57,12 @@ enum resctrl_res_level {
 	RDT_NUM_RESOURCES,
 };
 
+enum resctrl_ctrl_type {
+	SCHEMA_BASIC = 0,
+	SCHEMA_DSPRI,
+	SCHEMA_NUM_CTRL_TYPE
+};
+
 #define CDP_NUM_TYPES	(CDP_DATA + 1)
 
 /*
