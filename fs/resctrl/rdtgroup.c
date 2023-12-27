@@ -2261,7 +2261,7 @@ static int schemata_list_add(struct rdt_resource *r,
 				enum resctrl_ctrl_type ctrl_type)
 {
 	struct resctrl_schema *s;
-	const char *suffix = "";
+	const char *suffix = "", *ext_suffix = "";
 	int ret, cl;
 
 	s = kzalloc(sizeof(*s), GFP_KERNEL);
@@ -2286,12 +2286,22 @@ static int schemata_list_add(struct rdt_resource *r,
 		break;
 	}
 
-	if (ctrl_type == SCHEMA_BASIC) {
+	s->ctrl_type = ctrl_type;
+	switch (ctrl_type) {
+	case SCHEMA_DSPRI:
+		ext_suffix = "DSPRI";
+		break;
+	}
+
+	if (ctrl_type == SCHEMA_BASIC)
 		ret = snprintf(s->name, sizeof(s->name), "%s%s", r->name, suffix);
-		if (ret >= sizeof(s->name)) {
-			kfree(s);
-			return -EINVAL;
-		}
+	else
+		ret = snprintf(s->name, sizeof(s->name), "%s%s%s", r->name,
+                               suffix, ext_suffix);
+
+	if (ret >= sizeof(s->name)) {
+		kfree(s);
+		return -EINVAL;
 	}
 
 	cl = strlen(s->name);
@@ -2312,7 +2322,9 @@ static int schemata_list_add(struct rdt_resource *r,
 	 * widest cbm/data_width.
 	 */
 	if (ctrl_type == SCHEMA_BASIC)
-		max_data_width = max(max_data_width, r->data_width);
+		s->max_data_width = max(max_data_width, r->data_width);
+	else
+		s->max_data_width = max(max_data_width, r->dspri_data_width);
 
 	INIT_LIST_HEAD(&s->list);
 	list_add(&s->list, &resctrl_schema_all);
@@ -2322,6 +2334,7 @@ static int schemata_list_add(struct rdt_resource *r,
 
 static int schemata_list_create(void)
 {
+	enum resctrl_ctrl_type ctrl_type;
 	enum resctrl_res_level i;
 	struct rdt_resource *r;
 	int ret = 0;
@@ -2345,6 +2358,13 @@ static int schemata_list_create(void)
 		if (ret)
 			break;
 
+		for_each_extend_ctrl_type(ctrl_type) {
+			if (ctrl_type == 1 && r->priority_cap) {
+                                ret = schemata_list_add(r, CDP_NONE, SCHEMA_DSPRI);
+				if (ret)
+					break;
+			}
+		}
 	}
 
 	return ret;

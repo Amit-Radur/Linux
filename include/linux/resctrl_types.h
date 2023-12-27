@@ -57,6 +57,9 @@ enum resctrl_res_level {
 	RDT_NUM_RESOURCES,
 };
 
+#define for_each_extend_ctrl_type(t)    \
+	for (t = SCHEMA_DSPRI; t != SCHEMA_NUM_CTRL_TYPE; t++)
+
 enum resctrl_ctrl_type {
 	SCHEMA_BASIC = 0,
 	SCHEMA_DSPRI,

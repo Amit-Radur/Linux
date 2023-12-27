@@ -205,6 +205,7 @@ struct resctrl_membw {
  * @domains:		RCU list of all domains for this resource
  * @name:		Name to use in "schemata" file.
  * @data_width:		Character width of data when displaying
+ * @dspri_data_width	Character width of dspri value when displaying
  * @default_ctrl:	Specifies default cache cbm or memory B/W percent.
  * @format_str:		Per resource format string to show domain value
  * @evt_list:		List of monitoring events
@@ -223,6 +224,7 @@ struct rdt_resource {
 	struct list_head	domains;
 	char			*name;
 	int			data_width;
+	int                     dspri_data_width;
 	u32			default_ctrl;
 	const char		*format_str;
 	struct list_head	evt_list;
@@ -256,6 +258,7 @@ struct resctrl_schema {
 	enum resctrl_ctrl_type          ctrl_type;
 	struct rdt_resource		*res;
 	u32				num_closid;
+	int                             max_data_width;
 };
 
 /*

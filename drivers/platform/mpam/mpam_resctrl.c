@@ -729,8 +729,13 @@ static int mpam_resctrl_resource_init(struct mpam_resctrl_res *res)
 			exposed_alloc_capable = true;
 		}
 
-		if (has_ppart)
+		if (has_ppart) {
 			r->priority_cap = true;
+			if (class->props.dspri_wd > 0x10)
+				class->props.dspri_wd = 0x10;
+
+			r->dspri_data_width = (class->props.dspri_wd + 3) / 4;
+		}
 
 		/*
 		 * MBWU counters may be 'local' or 'total' depending on where
