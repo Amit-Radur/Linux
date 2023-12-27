@@ -373,6 +373,7 @@ out:
 
 static void show_doms(struct seq_file *s, struct resctrl_schema *schema, int closid)
 {
+	enum resctrl_ctrl_type ctrl_type = schema->ctrl_type;
 	struct rdt_resource *r = schema->res;
 	struct rdt_domain *dom;
 	bool sep = false;
@@ -390,9 +391,10 @@ static void show_doms(struct seq_file *s, struct resctrl_schema *schema, int clo
 			ctrl_val = dom->mbps_val[closid];
 		else
 			ctrl_val = resctrl_arch_get_config(r, dom, closid,
-							   schema->conf_type);
+							   schema->conf_type,
+							   ctrl_type);
 
-		seq_printf(s, r->format_str, dom->id, max_data_width,
+		seq_printf(s, r->format_str, dom->id, schema->max_data_width,
 			   ctrl_val);
 		sep = true;
 	}

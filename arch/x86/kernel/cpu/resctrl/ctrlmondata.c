@@ -116,7 +116,8 @@ done:
 }
 
 u32 resctrl_arch_get_config(struct rdt_resource *r, struct rdt_domain *d,
-			    u32 closid, enum resctrl_conf_type type)
+			    u32 closid, enum resctrl_conf_type type,
+			    enum resctrl_conf_type ctrl_type)
 {
 	struct rdt_hw_domain *hw_dom = resctrl_to_arch_dom(d);
 	u32 idx = resctrl_get_config_index(closid, type);

@@ -848,7 +848,8 @@ void mpam_resctrl_exit(void)
 }
 
 u32 resctrl_arch_get_config(struct rdt_resource *r, struct rdt_domain *d,
-			    u32 closid, enum resctrl_conf_type type)
+			    u32 closid, enum resctrl_conf_type type,
+			    enum resctrl_ctrl_type ctrl_type)
 {
 	u32 partid;
 	struct mpam_config *cfg;

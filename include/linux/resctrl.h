@@ -377,7 +377,8 @@ int resctrl_arch_update_one(struct rdt_resource *r, struct rdt_domain *d,
 			    u32 closid, enum resctrl_conf_type t, u32 cfg_val);
 
 u32 resctrl_arch_get_config(struct rdt_resource *r, struct rdt_domain *d,
-			    u32 closid, enum resctrl_conf_type type);
+			    u32 closid, enum resctrl_conf_type type,
+			    enum resctrl_ctrl_type ctrl_type);
 int resctrl_online_domain(struct rdt_resource *r, struct rdt_domain *d);
 void resctrl_offline_domain(struct rdt_resource *r, struct rdt_domain *d);
 int resctrl_online_cpu(unsigned int cpu);

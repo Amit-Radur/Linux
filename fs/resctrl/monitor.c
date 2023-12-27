@@ -478,7 +478,8 @@ static void update_mba_bw(struct rdtgroup *rgrp, struct rdt_domain *dom_mbm)
 	delta_bw = pmbm_data->delta_bw;
 
 	/* MBA resource doesn't support CDP */
-	cur_msr_val = resctrl_arch_get_config(r_mba, dom_mba, closid, CDP_NONE);
+	cur_msr_val = resctrl_arch_get_config(r_mba, dom_mba, closid, CDP_NONE,
+					      SCHEMA_BASIC);
 
 	/*
 	 * For Ctrl groups read data from child monitor groups.
