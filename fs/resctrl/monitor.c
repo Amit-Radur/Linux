@@ -514,7 +514,8 @@ static void update_mba_bw(struct rdtgroup *rgrp, struct rdt_domain *dom_mbm)
 		return;
 	}
 
-	resctrl_arch_update_one(r_mba, dom_mba, closid, CDP_NONE, new_msr_val);
+	resctrl_arch_update_one(r_mba, dom_mba, closid, CDP_NONE, new_msr_val,
+				SCHEMA_BASIC);
 
 	/*
 	 * Delta values are updated dynamically package wise for each

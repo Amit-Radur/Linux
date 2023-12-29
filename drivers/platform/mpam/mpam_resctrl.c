@@ -920,7 +920,8 @@ u32 resctrl_arch_get_config(struct rdt_resource *r, struct rdt_domain *d,
 }
 
 int resctrl_arch_update_one(struct rdt_resource *r, struct rdt_domain *d,
-			    u32 closid, enum resctrl_conf_type t, u32 cfg_val)
+			    u32 closid, enum resctrl_conf_type t, u32 cfg_val,
+			    enum resctrl_ctrl_type type)
 {
 	int err;
 	u32 partid;
@@ -983,7 +984,8 @@ int resctrl_arch_update_one(struct rdt_resource *r, struct rdt_domain *d,
 }
 
 /* TODO: this is IPI heavy */
-int resctrl_arch_update_domains(struct rdt_resource *r, u32 closid)
+int resctrl_arch_update_domains(struct rdt_resource *r, u32 closid,
+				enum resctrl_ctrl_type type)
 {
 	int err = 0;
 	struct rdt_domain *d;
@@ -1000,7 +1002,8 @@ int resctrl_arch_update_domains(struct rdt_resource *r, u32 closid)
 				continue;
 
 			err = resctrl_arch_update_one(r, d, closid, t,
-						      cfg->new_ctrl);
+						      cfg->new_ctrl,
+						      type);
 			if (err)
 				return err;
 		}

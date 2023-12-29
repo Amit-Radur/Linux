@@ -405,7 +405,8 @@ ssize_t rdtgroup_schemata_write(struct kernfs_open_file *of,
 			continue;
 
 		if (!strcmp(resname, s->name)) {
-			ret = resctrl_arch_update_domains(r, rdtgrp->closid);
+			ret = resctrl_arch_update_domains(r, rdtgrp->closid,
+							  s->ctrl_type);
 			if (ret)
 				goto out;
 		}

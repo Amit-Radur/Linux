@@ -334,7 +334,8 @@ int resctrl_rdtgroup_show(struct seq_file *seq, u32 closid, u32 rmid);
 u32 resctrl_arch_get_num_closid(struct rdt_resource *r);
 
 struct rdt_domain *resctrl_arch_find_domain(struct rdt_resource *r, int id);
-int resctrl_arch_update_domains(struct rdt_resource *r, u32 closid);
+int resctrl_arch_update_domains(struct rdt_resource *r, u32 closid,
+				enum resctrl_ctrl_type type);
 
 /* For use by arch code that needs to remap resctrl's smaller CDP closid */
 static inline u32 resctrl_get_config_index(u32 closid,
@@ -374,7 +375,8 @@ resctrl_get_domain_from_cpu(int cpu, struct rdt_resource *r)
  * Must be called on one of the domain's CPUs.
  */
 int resctrl_arch_update_one(struct rdt_resource *r, struct rdt_domain *d,
-			    u32 closid, enum resctrl_conf_type t, u32 cfg_val);
+			    u32 closid, enum resctrl_conf_type t, u32 cfg_val,
+			    enum resctrl_ctrl_type ctrl_type);
 
 u32 resctrl_arch_get_config(struct rdt_resource *r, struct rdt_domain *d,
 			    u32 closid, enum resctrl_conf_type type,

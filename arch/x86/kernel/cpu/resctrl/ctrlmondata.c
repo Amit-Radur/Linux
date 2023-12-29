@@ -39,7 +39,8 @@ static bool apply_config(struct rdt_hw_domain *hw_dom,
 }
 
 int resctrl_arch_update_one(struct rdt_resource *r, struct rdt_domain *d,
-			    u32 closid, enum resctrl_conf_type t, u32 cfg_val)
+			    u32 closid, enum resctrl_conf_type t, u32 cfg_val,
+			    enum resctrl_ctrl_type type)
 {
 	struct rdt_hw_resource *hw_res = resctrl_to_arch_res(r);
 	struct rdt_hw_domain *hw_dom = resctrl_to_arch_dom(d);
@@ -59,7 +60,8 @@ int resctrl_arch_update_one(struct rdt_resource *r, struct rdt_domain *d,
 	return 0;
 }
 
-int resctrl_arch_update_domains(struct rdt_resource *r, u32 closid)
+int resctrl_arch_update_domains(struct rdt_resource *r, u32 closid,
+				enum resctrl_ctrl_type type)
 {
 	struct resctrl_staged_config *cfg;
 	struct rdt_hw_domain *hw_dom;
