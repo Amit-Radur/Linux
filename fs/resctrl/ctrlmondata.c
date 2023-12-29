@@ -30,6 +30,55 @@ typedef int (ctrlval_parser_t)(struct rdt_parse_data *data,
 			       struct resctrl_schema *s,
 			       struct rdt_domain *d);
 
+static bool dspri_validate(char *buf, unsigned long *data, struct rdt_resource *r)
+{
+
+	unsigned long dspri_val;
+	bool success = true;
+	int ret;
+
+	ret = kstrtoul(buf, 16, &dspri_val);
+	if (ret) {
+		pr_info("Non-hex character in the mask %s\n", buf);
+		success = false;
+		goto out;
+	}
+
+	if (dspri_val > r->default_dspri_ctrl) {
+		pr_info("dspri value %ld out of range [%d-%d]\n", dspri_val,
+					0, r->default_dspri_ctrl);
+		success = false;
+		goto out;
+	}
+
+	*data = dspri_val;
+
+out:
+	return success;
+}
+
+static int parse_dspri(struct rdt_parse_data *data, struct resctrl_schema *s,
+			struct rdt_domain *d)
+{
+	struct resctrl_staged_config *cfg;
+	struct rdt_resource *r = s->res;
+	unsigned long pri_val;
+
+	cfg = &d->staged_config[s->conf_type];
+	if (cfg->have_new_ctrl) {
+		pr_info("Duplicate domain %d\n", d->id);
+		return -EINVAL;
+	}
+
+	if (!dspri_validate(data->buf, &pri_val, r))
+		return -EINVAL;
+
+	cfg->new_ctrl = pri_val;
+	cfg->have_new_ctrl = true;
+
+	return 0;
+}
+
 /*
  * Check whether MBA bandwidth percentage value is correct. The value is
  * checked against the minimum and max bandwidth values specified by the
@@ -201,10 +250,14 @@ static int parse_cbm(struct rdt_parse_data *data, struct resctrl_schema *s,
 	return 0;
 }
 
-static ctrlval_parser_t *get_parser(struct rdt_resource *res)
+static ctrlval_parser_t *get_parser(struct resctrl_schema *s)
 {
-	if (res->fflags & RFTYPE_RES_CACHE)
+	struct rdt_resource *res = s->res;
+
+	if (res->fflags & RFTYPE_RES_CACHE && !s->ctrl_type)
 		return &parse_cbm;
+	else if (s->ctrl_type == SCHEMA_DSPRI)
+		return &parse_dspri;
 	else
 		return &parse_bw;
 }
@@ -218,7 +271,7 @@ static ctrlval_parser_t *get_parser(struct rdt_resource *res)
 static int parse_line(char *line, struct resctrl_schema *s,
 		      struct rdtgroup *rdtgrp)
 {
-	ctrlval_parser_t *parse_ctrlval = get_parser(s->res);
+	ctrlval_parser_t *parse_ctrlval = get_parser(s);
 	enum resctrl_conf_type t = s->conf_type;
 	struct resctrl_staged_config *cfg;
 	struct rdt_resource *r = s->res;
