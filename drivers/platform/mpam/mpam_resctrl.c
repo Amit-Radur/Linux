@@ -860,8 +860,12 @@ u32 resctrl_arch_get_config(struct rdt_resource *r, struct rdt_domain *d,
 
 	lockdep_assert_cpus_held();
 
-	if (!mpam_is_enabled())
-		return r->default_ctrl;
+	if (!mpam_is_enabled()) {
+		if (ctrl_type == SCHEMA_DSPRI)
+			return r->default_dspri_ctrl;
+		else
+			return r->default_ctrl;
+	}
 
 	res = container_of(r, struct mpam_resctrl_res, resctrl_res);
 	dom = container_of(d, struct mpam_resctrl_dom, resctrl_dom);
@@ -873,7 +877,10 @@ u32 resctrl_arch_get_config(struct rdt_resource *r, struct rdt_domain *d,
 	switch (r->rid) {
 	case RDT_RESOURCE_L2:
 	case RDT_RESOURCE_L3:
-		configured_by = mpam_feat_cpor_part;
+		if (ctrl_type == SCHEMA_DSPRI)
+			configured_by = mpam_feat_dspri_part;
+		else
+			configured_by = mpam_feat_cpor_part;
 		break;
 	case RDT_RESOURCE_MBA:
 		if (mba_class_use_mbw_part(cprops)) {
@@ -889,13 +896,19 @@ u32 resctrl_arch_get_config(struct rdt_resource *r, struct rdt_domain *d,
 	}
 
 	if (!r->alloc_capable || partid >= resctrl_arch_get_num_closid(r) ||
-	    !mpam_has_feature(configured_by, cfg))
-		return r->default_ctrl;
+	    !mpam_has_feature(configured_by, cfg)) {
+		if (ctrl_type == SCHEMA_DSPRI)
+			return r->default_dspri_ctrl;
+		else
+			return r->default_ctrl;
+	}
 
 	switch (configured_by) {
 	case mpam_feat_cpor_part:
 		/* TODO: Scaling is not yet supported */
 		return cfg->cpbm;
+	case mpam_feat_dspri_part:
+		return cfg->dspri;
 	case mpam_feat_mbw_part:
 		/* TODO: Scaling is not yet supported */
 		return mbw_pbm_to_percent(cfg->mbw_pbm, cprops);
