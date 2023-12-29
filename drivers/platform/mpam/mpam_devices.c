@@ -1101,6 +1101,7 @@ static void mpam_reprogram_ris_partid(struct mpam_msc_ris *ris, u16 partid,
 	struct mpam_props *rprops = &ris->props;
 	u16 dspri = GENMASK((rprops->dspri_wd - 1), 0);
 	u16 intpri = GENMASK((rprops->intpri_wd - 1), 0);
+	u8 dspri_part_0_low, dspri_rprops, dspri_cfg;
 
 	lockdep_assert_held(&msc->lock);
 
@@ -1143,21 +1144,36 @@ static void mpam_reprogram_ris_partid(struct mpam_msc_ris *ris, u16 partid,
 	if (mpam_has_feature(mpam_feat_ccap_part, rprops))
 		mpam_write_partsel_reg(msc, CMAX, cmax);
 
-	if (mpam_has_feature(mpam_feat_intpri_part, rprops) ||
-	    mpam_has_feature(mpam_feat_dspri_part, rprops)) {
+	if (mpam_has_feature(mpam_feat_intpri_part, rprops)) {
 		/* aces high? */
-		if (!mpam_has_feature(mpam_feat_intpri_part_0_low, rprops))
+	        if (!mpam_has_feature(mpam_feat_intpri_part_0_low, rprops))
 			intpri = 0;
-		if (!mpam_has_feature(mpam_feat_dspri_part_0_low, rprops))
-			dspri = 0;
 
-		if (mpam_has_feature(mpam_feat_intpri_part, rprops))
+	        if (mpam_has_feature(mpam_feat_intpri_part, rprops))
 			pri_val |= FIELD_PREP(MPAMCFG_PRI_INTPRI, intpri);
-		if (mpam_has_feature(mpam_feat_dspri_part, rprops))
-			pri_val |= FIELD_PREP(MPAMCFG_PRI_DSPRI, dspri);
 
 		mpam_write_partsel_reg(msc, PRI, pri_val);
 	}
+
+	dspri_rprops = mpam_has_feature(mpam_feat_dspri_part,
+					rprops);
+	dspri_part_0_low = mpam_has_feature(mpam_feat_dspri_part_0_low,
+						rprops);
+	if (dspri_rprops) {
+		dspri_cfg = mpam_has_feature(mpam_feat_dspri_part,
+						cfg);
+		if (dspri_cfg) {
+			pri_val |= (!dspri_part_0_low)
+			? FIELD_PREP(MPAMCFG_PRI_DSPRI, cfg->dspri ^ dspri)
+			: FIELD_PREP(MPAMCFG_PRI_DSPRI, cfg->dspri & dspri);
+		} else {
+			pri_val |= (!dspri_part_0_low)
+			? FIELD_PREP(MPAMCFG_PRI_DSPRI, 0)
+			: FIELD_PREP(MPAMCFG_PRI_DSPRI, dspri);
+                }
+
+		mpam_write_partsel_reg(msc, PRI, pri_val);
+        }
 
 	spin_unlock(&msc->part_sel_lock);
 }
