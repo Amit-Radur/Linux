@@ -925,7 +925,7 @@ int resctrl_arch_update_one(struct rdt_resource *r, struct rdt_domain *d,
 {
 	int err;
 	u32 partid;
-	struct mpam_config cfg;
+	struct mpam_config *cfg;
 	struct mpam_props *cprops;
 	struct mpam_resctrl_res *res;
 	struct mpam_resctrl_dom *dom;
@@ -940,24 +940,30 @@ int resctrl_arch_update_one(struct rdt_resource *r, struct rdt_domain *d,
 	cprops = &res->class->props;
 
 	partid = resctrl_get_config_index(closid, t);
+	cfg = &dom->comp->cfg[partid];
 	if (!r->alloc_capable || partid >= resctrl_arch_get_num_closid(r))
 		return -EINVAL;
 
 	switch (r->rid) {
 	case RDT_RESOURCE_L2:
 	case RDT_RESOURCE_L3:
+		if (type == SCHEMA_DSPRI) {
+			cfg->dspri = cfg_val;
+			mpam_set_feature(mpam_feat_dspri_part, cfg);
+		} else {
 		/* TODO: Scaling is not yet supported */
-		cfg.cpbm = cfg_val;
-		mpam_set_feature(mpam_feat_cpor_part, &cfg);
+			cfg->cpbm = cfg_val;
+			mpam_set_feature(mpam_feat_cpor_part, cfg);
+		}
 		break;
 	case RDT_RESOURCE_MBA:
 		if (mba_class_use_mbw_part(cprops)) {
-			cfg.mbw_pbm = percent_to_mbw_pbm(cfg_val, cprops);
-			mpam_set_feature(mpam_feat_mbw_part, &cfg);
+			cfg->mbw_pbm = percent_to_mbw_pbm(cfg_val, cprops);
+			mpam_set_feature(mpam_feat_mbw_part, cfg);
 			break;
 		} else if (mpam_has_feature(mpam_feat_mbw_max, cprops)) {
-			cfg.mbw_max = percent_to_mbw_max(cfg_val, cprops);
-			mpam_set_feature(mpam_feat_mbw_max, &cfg);
+			cfg->mbw_max = percent_to_mbw_max(cfg_val, cprops);
+			mpam_set_feature(mpam_feat_mbw_max, cfg);
 			break;
 		}
 		fallthrough;
@@ -971,15 +977,15 @@ int resctrl_arch_update_one(struct rdt_resource *r, struct rdt_domain *d,
 	 */
 	if (mpam_resctrl_hide_cdp(r->rid)) {
 		partid = resctrl_get_config_index(closid, CDP_CODE);
-		err = mpam_apply_config(dom->comp, partid, &cfg);
+		err = mpam_apply_config(dom->comp, partid, cfg);
 		if (err)
 			return err;
 
 		partid = resctrl_get_config_index(closid, CDP_DATA);
-		return mpam_apply_config(dom->comp, partid, &cfg);
+		return mpam_apply_config(dom->comp, partid, cfg);
 
 	} else {
-		return mpam_apply_config(dom->comp, partid, &cfg);
+		return mpam_apply_config(dom->comp, partid, cfg);
 	}
 }
 
