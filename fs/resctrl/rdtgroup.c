@@ -1118,6 +1118,16 @@ static int rdt_bit_usage_show(struct kernfs_open_file *of,
 	return 0;
 }
 
+static int rdt_max_dspri_show(struct kernfs_open_file *of,
+				struct seq_file *seq, void *v)
+{
+	struct resctrl_schema *s = of->kn->parent->priv;
+	struct rdt_resource *r = s->res;
+
+	seq_printf(seq, "%u\n", r->default_dspri_ctrl);
+	return 0;
+}
+
 static int rdt_min_bw_show(struct kernfs_open_file *of,
 			     struct seq_file *seq, void *v)
 {
@@ -1714,6 +1724,13 @@ static struct rftype res_common_files[] = {
 		.fflags		= RF_CTRL_INFO | RFTYPE_RES_CACHE,
 	},
 	{
+		.name           = "max_dspri",
+		.mode           = 0444,
+		.kf_ops         = &rdtgroup_kf_single_ops,
+		.seq_show       = rdt_max_dspri_show,
+		.fflags         = RF_CTRL_INFO | RFTYPE_RES_CACHE,
+	},
+	{
 		.name		= "min_bandwidth",
 		.mode		= 0444,
 		.kf_ops		= &rdtgroup_kf_single_ops,
@@ -2009,6 +2026,9 @@ static int rdtgroup_create_info_dir(struct kernfs_node *parent_kn)
 
 	/* loop over enabled controls, these are all alloc_capable */
 	list_for_each_entry(s, &resctrl_schema_all, list) {
+		if (s->ctrl_type == SCHEMA_DSPRI)
+			continue;
+
 		r = s->res;
 		fflags =  r->fflags | RF_CTRL_INFO;
 		ret = rdtgroup_mkdir_info_resdir(s, s->name, fflags);
